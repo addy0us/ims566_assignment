@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Purchases Management</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+body {margin:0; font-family:'Segoe UI',sans-serif; background:#f0f2f5;}
+.sidebar {position:fixed; top:0; left:0; height:100vh; width:220px; background:#000; padding-top:18px; z-index:1000;}
+.sidebar a {display:flex; align-items:center; gap:12px; padding:14px 20px; color:#d1d1d1; text-decoration:none; font-size:15px;}
+.sidebar a i {font-size:18px;}
+.sidebar a:hover, .sidebar .active { background:#ff6b6b; color:#fff;}
+.sidebar .nav-text {opacity:1;}
+.topbar{margin-left:220px; background:#fff; padding:14px 20px; box-shadow:0 2px 10px rgba(0,0,0,.1); display:flex; justify-content:space-between; align-items:center;}
+.content{margin-left:220px; padding:20px;}
+.card,.table-container{background:#fff; border-radius:12px; padding:20px; box-shadow:0 4px 12px rgba(0,0,0,.05);}
+.table td,.table th{vertical-align:middle;}
+.btn-add{background:#198754;color:#fff;}
+.btn-add:hover{background:#157347;}
+.stat-card{border-radius:12px; padding:20px; color:#fff; text-align:center;}
+.stat-purchases{background:linear-gradient(45deg,#0d6efd,#6610f2);}
+.stat-total{background:linear-gradient(45deg,#198754,#20c997);}
+.chart-card canvas{width:100%!important; height:280px!important;}
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+    <a href="dashboard.html"><i class="bi bi-grid"></i><span class="nav-text">Dashboard</span></a>
+    <a href="inventory.html"><i class="bi bi-box"></i><span class="nav-text">Inventory</span></a>
+    <a href="sales.html"><i class="bi bi-cart"></i><span class="nav-text">Sales</span></a>
+    <a class="active" href="#"><i class="bi bi-truck"></i><span class="nav-text">Purchases</span></a>
+</div>
+
+<div class="topbar">
+    <div>
+        <h5 class="m-0">Purchases Management</h5>
+        <small class="text-muted">Track and add purchases</small>
+    </div>
+    <div class="d-flex gap-3">
+        <div class="stat-card stat-purchases">
+            <div>Purchases</div>
+            <strong id="purchaseCount">0</strong>
+        </div>
+        <div class="stat-card stat-total">
+            <div>Total Cost</div>
+            <strong id="purchaseTotal">RM 0.00</strong>
+        </div>
+    </div>
+</div>
+
+<div class="content container-fluid">
+<div class="row g-4">
+
+<!-- Purchases Table -->
+<div class="col-lg-8">
+    <div class="table-container">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0">All Purchases</h5>
+            <small class="text-muted">Most recent first</small>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle" id="purchasesTable">
+                <thead class="table-light">
+                    <tr>
+                        <th>Purchase ID</th><th>Product</th><th>Qty</th><th>Price (RM)</th><th>Total (RM)</th><th>Date</th><th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add Purchase Form -->
+<div class="col-lg-4">
+    <div class="card">
+        <h5 class="mb-3">Add New Purchase</h5>
+        <form id="addPurchaseForm">
+            <div class="mb-3">
+                <label class="form-label">Product</label>
+                <select id="productSelect" class="form-select" required>
+                    <option value="">-- Select product --</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Quantity</label>
+                <input type="number" id="quantityInput" class="form-control" min="1" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Price per Unit (RM)</label>
+                <input type="text" id="priceInput" class="form-control" readonly>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Total (RM)</label>
+                <input type="text" id="totalInput" class="form-control" readonly>
+            </div>
+            <button type="submit" class="btn btn-add w-100">Add Purchase</button>
+        </form>
+    </div>
+</div>
+
+</div>
+
+<!-- Charts -->
+<div class="row g-4 mt-4">
+    <div class="col-md-6">
+        <div class="card chart-card">
+            <h6 class="text-center mb-3">Total Purchases per Product (RM)</h6>
+            <canvas id="productPurchaseChart"></canvas>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card chart-card">
+            <h6 class="text-center mb-3">Purchase Cost Over Time</h6>
+            <canvas id="purchaseTrendChart"></canvas>
+        </div>
+    </div>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let inventory = [
+    {id:"P001", name:"Daun Bawang", category:"Breakfast", stock:50, price:12.5},
+    {id:"P002", name:"Ikan Siakap", category:"Lunch", stock:8, price:20.0},
+    {id:"P003", name:"Nasi Impit", category:"Event", stock:2, price:30.0},
+    {id:"P004", name:"Ayam", category:"Ramadhan - Iftar", stock:20, price:16.99},
+    {id:"P005", name:"Coffee Beans", category:"Ramadhan - Moreh", stock:2, price:35.9}
+];
+
+let purchases=[];
+
+const productSelect = document.getElementById('productSelect');
+const quantityInput = document.getElementById('quantityInput');
+const priceInput = document.getElementById('priceInput');
+const totalInput = document.getElementById('totalInput');
+const purchaseTableBody = document.querySelector('#purchasesTable tbody');
+const purchaseCount = document.getElementById('purchaseCount');
+const purchaseTotal = document.getElementById('purchaseTotal');
+
+function populateProducts(){
+    productSelect.innerHTML = '<option value="">-- Select product --</option>';
+    inventory.forEach(p=>{
+        const opt = document.createElement('option');
+        opt.value=p.id;
+        opt.textContent=`${p.name} (Stock: ${p.stock})`;
+        opt.dataset.price=p.price;
+        productSelect.appendChild(opt);
+    });
+}
+populateProducts();
+
+productSelect.addEventListener('change', ()=>{
+    const opt = productSelect.options[productSelect.selectedIndex];
+    if(!opt||!opt.value){ priceInput.value=''; totalInput.value=''; return; }
+    priceInput.value = parseFloat(opt.dataset.price).toFixed(2);
+    totalInput.value='';
+});
+
+quantityInput.addEventListener('input', ()=>{
+    const qty=parseInt(quantityInput.value)||0;
+    const price=parseFloat(priceInput.value)||0;
+    totalInput.value = qty>0?(qty*price).toFixed(2):'';
+});
+
+function generatePurchaseId(){ return 'P'+String(purchases.length+1).padStart(4,'0'); }
+
+document.getElementById('addPurchaseForm').addEventListener('submit', e=>{
+    e.preventDefault();
+    const pid = productSelect.value;
+    if(!pid) return alert('Select a product');
+    const product = inventory.find(i=>i.id===pid);
+    const qty = parseInt(quantityInput.value)||0;
+    if(qty<=0) return alert('Quantity must be at least 1');
+    const price=parseFloat(product.price);
+    const total=qty*price;
+    const purchase={purchase_id:generatePurchaseId(), product_id:pid, product_name:product.name, quantity:qty, price:price, total:total, date:new Date().toLocaleString()};
+    purchases.push(purchase);
+    renderPurchases();
+    quantityInput.value=''; totalInput.value=''; priceInput.value='';
+    populateProducts();
+});
+
+function renderPurchases(){
+    purchaseTableBody.innerHTML='';
+    purchases.slice().reverse().forEach(p=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML=`<td>${p.purchase_id}</td><td>${p.product_name}</td><td>${p.quantity}</td><td>${p.price.toFixed(2)}</td><td>${p.total.toFixed(2)}</td><td>${p.date}</td>
+        <td><button class="btn btn-sm btn-danger" onclick="deletePurchase('${p.purchase_id}')">Delete</button></td>`;
+        purchaseTableBody.appendChild(tr);
+    });
+    updateStats();
+    renderCharts();
+}
+
+function deletePurchase(id){
+    purchases = purchases.filter(p=>p.purchase_id!==id);
+    renderPurchases();
+}
+
+function updateStats(){
+    purchaseCount.textContent=purchases.length;
+    purchaseTotal.textContent='RM '+purchases.reduce((a,p)=>a+p.total,0).toFixed(2);
+}
+
+// Charts
+let productChart, trendChart;
+function renderCharts(){
+    const productSums = {};
+    const daily={};
+    purchases.forEach(p=>{
+        productSums[p.product_name]=(productSums[p.product_name]||0)+p.total;
+        const day = p.date.slice(0,10);
+        daily[day]=(daily[day]||0)+p.total;
+    });
+    const prodLabels=Object.keys(productSums);
+    const prodTotals=Object.values(productSums);
+    const trendLabels=Object.keys(daily).sort();
+    const trendTotals=trendLabels.map(d=>daily[d]);
+
+    if(productChart) productChart.destroy();
+    if(trendChart) trendChart.destroy();
+
+    const ctx1=document.getElementById('productPurchaseChart').getContext('2d');
+    productChart=new Chart(ctx1,{type:'bar',data:{labels:prodLabels,datasets:[{label:'Total Purchases', data:prodTotals, backgroundColor:['#0d6efd','#6610f2','#0dcaf0','#fd7e14','#198754','#dc3545']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
+
+    const ctx2=document.getElementById('purchaseTrendChart').getContext('2d');
+    trendChart=new Chart(ctx2,{type:'line',data:{labels:trendLabels,datasets:[{label:'Total Cost', data:trendTotals, borderColor:'#198754', backgroundColor:'rgba(25,135,84,0.12)', fill:true, tension:0.3}]} ,options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
+}
+</script>
+</body>
+</html>

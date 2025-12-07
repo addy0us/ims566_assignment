@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inventory Management</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+body { margin:0; font-family:'Segoe UI',sans-serif; background:#f0f2f5; }
+
+/* Sidebar */
+.sidebar {
+    position: fixed; top:0; left:0; height:100vh; width:220px; /* full width sidebar */
+    background: linear-gradient(180deg, #000000ff, #000000ff);
+    padding-top:18px; overflow-x:hidden; z-index:1000;
+}
+.sidebar a {
+    display:flex; align-items:center; gap:12px;
+    padding:14px 20px; color:#d1d1d1; text-decoration:none; font-size:15px;
+    transition:all .3s;
+}
+.sidebar a i { font-size:18px; }
+.sidebar a:hover, .sidebar .active { background:#ff6b6b; color:#fff; }
+.sidebar .nav-text { opacity:1; white-space:nowrap; }
+
+/* Topbar */
+.topbar {
+    margin-left:220px; 
+    background: linear-gradient(90deg, #ffffff, #e9ecef);
+    padding:14px 20px; box-shadow:0 3px 10px rgba(0,0,0,0.08);
+    display:flex; justify-content:space-between; align-items:center; z-index:900;
+}
+
+/* Content */
+.content { margin-left:220px; padding:20px; }
+
+/* Card */
+.card { border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.08); padding:20px; transition:transform .3s, box-shadow .3s; }
+.card:hover { transform:translateY(-5px); box-shadow:0 8px 20px rgba(0,0,0,0.12); }
+
+.low-stock { color:red; font-weight:bold; }
+
+/* Responsive */
+@media (max-width:992px) { 
+    .sidebar { position:relative; width:220px; height:auto; } 
+    .topbar,.content{margin-left:0;} 
+}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+    <a href="#"><i class="bi bi-grid"></i><span class="nav-text">Dashboard</span></a>
+    <a class="active" href="#"><i class="bi bi-box"></i><span class="nav-text">Inventory</span></a>
+    <a href="#"><i class="bi bi-cart"></i><span class="nav-text">Sales</span></a>
+    <a href="#"><i class="bi bi-truck"></i><span class="nav-text">Purchases</span></a>
+    <a href="#"><i class="bi bi-file-earmark-text"></i><span class="nav-text">Reports</span></a>
+    <a href="#"><i class="bi bi-box-arrow-right"></i><span class="nav-text">Logout</span></a>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+    <h5 class="m-0">Inventory Management</h5>
+    <small class="text-muted">Manage your products</small>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="content">
+<div class="container-fluid">
+    <div class="row mb-4">
+        <!-- Inventory Table -->
+        <div class="col-lg-8">
+            <div class="table-container">
+                <h5 class="mb-3">All Inventory Items</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle" id="inventoryTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th><th>Name</th><th>Category</th>
+                                <th>Stock</th><th>Price (RM)</th><th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <!-- Rows inserted by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Product Form -->
+        <div class="col-lg-4">
+            <div class="card p-3">
+                <h5 class="mb-3">Add New Product</h5>
+                <form id="addForm">
+                    <div class="mb-2"><input type="text" name="id" class="form-control" placeholder="Item ID" required></div>
+                    <div class="mb-2"><input type="text" name="name" class="form-control" placeholder="Item Name" required></div>
+                    <div class="mb-2">
+                        <select name="category" class="form-control" required>
+                            <option value="">Select Category</option>
+                            <option value="Breakfast">Breakfast</option>
+                            <option value="Lunch">Lunch</option>
+                            <option value="Ramadhan - Iftar">Ramadhan - Iftar</option>
+                            <option value="Ramadhan - Moreh">Ramadhan - Moreh</option>
+                            <option value="Event">Event</option>
+                        </select>
+                    </div>
+                    <div class="mb-2"><input type="number" name="stock" class="form-control" placeholder="Stock" required></div>
+                    <div class="mb-2"><input type="number" step="0.01" name="price" class="form-control" placeholder="Price" required></div>
+                    <button type="submit" class="btn btn-success w-100">Add Product</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+let inventory = [
+    {id:"P001", name:"Daun Bawang", category:"Breakfast", stock:50, price:12.5},
+    {id:"P002", name:"Ikan Siakap", category:"Lunch", stock:8, price:20.0},
+    {id:"P003", name:"Nasi Impit", category:"Event", stock:2, price:30.0},
+    {id:"P004", name:"Ayam", category:"Ramadhan - Iftar", stock:20, price:16.99},
+    {id:"P005", name:"Coffee Beans", category:"Ramadhan - Moreh", stock:2, price:35.9}
+];
+
+function renderTable() {
+    const tbody = document.querySelector("#inventoryTable tbody");
+    tbody.innerHTML = "";
+    inventory.forEach(item => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${item.id}</td>
+            <td>${item.name}</td>
+            <td>${item.category}</td>
+            <td class="${item.stock<10?'low-stock':''}">${item.stock}</td>
+            <td>${item.price.toFixed(2)}</td>
+            <td>
+                <button class="btn btn-sm btn-warning" onclick="editItem('${item.id}')">Edit</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteItem('${item.id}')">Delete</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function addItem(e) {
+    e.preventDefault();
+    const form = e.target;
+    const newItem = {
+        id: form.id.value,
+        name: form.name.value,
+        category: form.category.value,
+        stock: parseInt(form.stock.value),
+        price: parseFloat(form.price.value)
+    };
+    inventory.push(newItem);
+    form.reset();
+    renderTable();
+}
+
+function deleteItem(id) {
+    inventory = inventory.filter(i => i.id !== id);
+    renderTable();
+}
+
+function editItem(id) {
+    const item = inventory.find(i => i.id === id);
+    const newName = prompt("Enter new name", item.name);
+    if(newName!==null) item.name = newName;
+    const newCat = prompt("Enter new category", item.category);
+    if(newCat!==null) item.category = newCat;
+    const newStock = prompt("Enter new stock", item.stock);
+    if(newStock!==null) item.stock = parseInt(newStock);
+    const newPrice = prompt("Enter new price"
+    , item.price);
+    if(newPrice!==null) item.price = parseFloat(newPrice);
+    renderTable();
+}
+
+document.getElementById("addForm").addEventListener("submit", addItem);
+
+renderTable();
+</script>
+</body>
+</html>
